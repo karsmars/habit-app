@@ -1,6 +1,16 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { normalizeData } from "../js/state.js";
+import { emptyData, normalizeData } from "../js/state.js";
+
+test("a new account starts with empty habit and reward lists", () => {
+  assert.deepEqual(emptyData(), {
+    version: 1,
+    goals: [],
+    completions: [],
+    rewards: [],
+    purchases: []
+  });
+});
 
 test("legacy goal arrays receive order from their stored position", () => {
   const data = normalizeData({

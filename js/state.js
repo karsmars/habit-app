@@ -9,28 +9,6 @@ export function emptyData() {
   return { version: 1, goals: [], completions: [], rewards: [], purchases: [] };
 }
 
-export function exampleData() {
-  const now = new Date().toISOString();
-  const goals = [
-    ["Exercise", "🏃", 10, "#E5484D"],
-    ["Read 20 minutes", "📚", 5, "#3E63DD"],
-    ["Drink water", "💧", 3, "#12A594"],
-    ["No phone before bed", "🌙", 5, "#8E4EC6"]
-  ].map(([name, emoji, points, color], index) => ({
-    id: crypto.randomUUID(), name, emoji, points, color,
-    archived: false, deleted: false, createdAt: now, updatedAt: now, order: index
-  }));
-  const rewards = [
-    ["Coffee treat", "☕", 25, true],
-    ["Movie night", "🎬", 75, true],
-    ["New book", "📖", 150, false]
-  ].map(([name, emoji, cost, repeatable]) => ({
-    id: crypto.randomUUID(), name, emoji, cost, repeatable,
-    archived: false, deleted: false, createdAt: now, updatedAt: now
-  }));
-  return { version: 1, goals, completions: [], rewards, purchases: [] };
-}
-
 export function loadLocalData() {
   const raw = localStorage.getItem(DATA_KEY);
   if (!raw) return emptyData();
@@ -102,12 +80,12 @@ export function validateUniqueCompletions(completions) {
 
 export function readConfig() {
   const raw = localStorage.getItem(CONFIG_KEY);
-  if (!raw) return { owner: "karsmars", repo: "habit-data", path: "data.json", token: "" };
+  if (!raw) return { owner: "", repo: "", path: "data.json", token: "" };
   try {
     const value = JSON.parse(raw);
     return {
-      owner: typeof value.owner === "string" ? value.owner : "karsmars",
-      repo: typeof value.repo === "string" ? value.repo : "habit-data",
+      owner: typeof value.owner === "string" ? value.owner : "",
+      repo: typeof value.repo === "string" ? value.repo : "",
       path: typeof value.path === "string" ? value.path : "data.json",
       token: typeof value.token === "string" ? value.token : ""
     };

@@ -4,7 +4,24 @@ A personal habit tracker that turns your daily habits into points you can spend 
 
 - **Live app:** https://karsmars.github.io/habit-app/
 - **App code (public):** https://github.com/karsmars/habit-app
-- **Your data (private):** https://github.com/karsmars/habit-data
+
+## Use the app with your own private data
+
+The hosted app is shared, but each person connects it to their **own** private GitHub repository. Your habits, rewards, and access token are not included in the public app repository.
+
+1. **Create a private data repository.** On GitHub, create a repository under your account, set it to **Private**, and initialize it with a README. In that repository, create `data.json` with this empty starting data, then commit it:
+
+   ```json
+   {"version":1,"goals":[],"completions":[],"rewards":[],"purchases":[]}
+   ```
+
+2. **Create a fine-grained personal access token (PAT).** In GitHub, open **Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token**. Give the token a name, choose an expiration, and under **Repository access** select **Only select repositories** and choose the private data repository you just created. Under **Repository permissions**, grant **Contents: Read and write**. GitHub adds Metadata read-only automatically. Generate the token and save it in your password manager; GitHub only shows it once.
+
+3. **Connect this device.** Open the [hosted app](https://karsmars.github.io/habit-app/), open **Settings**, and enter your GitHub username as **Repository owner**, your private repository name as **Repository name**, and `data.json` as **Data file path**. Paste your PAT, choose **Save settings**, then **Test connection**. Your token is stored only in this browser's local storage; it is not part of the app code or data file.
+
+4. **Repeat on each device.** Open the app and enter the same repository details and PAT on your laptop. On iPhone, open the app in Safari, choose **Share → Add to Home Screen**, then open the installed app and configure Settings there. The installed iPhone app has separate storage from Safari, so configure it separately. You can create a separate PAT for each device and revoke them independently.
+
+> **Keep your PAT private.** Never paste it into source code, a public or private issue, or a chat. Use a token limited to just your data repository. If a device is lost, revoke that device's token in GitHub settings.
 
 ## Features
 
@@ -21,35 +38,15 @@ A personal habit tracker that turns your daily habits into points you can spend 
 | Piece | What it is |
 |---|---|
 | Frontend | Plain HTML, CSS, and JavaScript with no build step, hosted free on GitHub Pages |
-| Database | One file, `data.json`, in the private `karsmars/habit-data` repo, read and written through the GitHub API |
+| Database | One file, `data.json`, in the private repository you configure in Settings, read and written through the GitHub API |
 | Auth | A fine-grained personal access token limited to the data repo, stored only in your device's browser storage |
 | Offline | A service worker caches the app, and a local cache holds your data until it can sync |
 
 Every save is a commit in the data repo, so you get a full version history and can roll back any mistake.
 
-## Setup
+## Development and self-hosting
 
-### 1. Create the data repo
-
-1. On GitHub, create a new repository named `habit-data`, set to **Private**, with **Add a README** ticked.
-2. In that repo, choose **Add file → Create new file**, name it `data.json`, paste the following, and commit:
-
-   ```json
-   {"version":1,"goals":[],"completions":[],"rewards":[],"purchases":[]}
-   ```
-
-### 2. Create an access token
-
-1. Go to GitHub → **Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token**.
-2. Name it something like `habit-app-phone`. Make a second one (`habit-app-laptop`) if you want a separate token per device, so you can revoke one without affecting the other.
-3. Set the expiration to the longest allowed, and add a calendar reminder to renew it.
-4. Under **Repository access**, choose **Only select repositories** and pick `habit-data`.
-5. Under **Repository permissions**, set **Contents** to **Read and write**. (Metadata read-only is added automatically.)
-6. Generate the token and **save it in your password manager immediately**. GitHub only shows it once.
-
-> **Never put your token in the code, in an issue, or in a chat.** You'll paste it only into the app's Settings screen.
-
-### 3. Run locally (optional)
+### Run locally (optional)
 
 You need any static file server. With Node.js installed:
 
@@ -67,40 +64,40 @@ To run the unit tests:
 node --test
 ```
 
-### 4. Deploy to GitHub Pages
+### Deploy your own copy to GitHub Pages
 
-1. Push the code to the `main` branch of `karsmars/habit-app`.
+1. Fork this public repository or create your own copy, then push it to the `main` branch of your app repository.
 2. In the repo, go to **Settings → Pages**.
 3. Under **Build and deployment**, set **Source** to **Deploy from a branch**, choose `main` and `/ (root)`, then click **Save**.
-4. After a minute or so, the app is live at https://karsmars.github.io/habit-app/.
+4. After deployment, open the GitHub Pages URL shown in your repository settings and connect it to your private data repo using the steps above.
 
-Pages on a free account requires the app repo to be public. That's fine, because the code contains no secrets. Your data lives in the separate private repo.
+GitHub Pages on a free account requires the app repository to be public. That is safe: the app repository contains no PAT or personal habit data. Your data stays in your separate private repository.
 
-### 5. Install on your devices
+### Install on your devices
 
 **iPhone**
-1. Open https://karsmars.github.io/habit-app/ in **Safari**.
+1. Open your app's GitHub Pages URL in **Safari**.
 2. Tap **Share → Add to Home Screen**.
-3. Open the app **from the home screen icon** (not from Safari) and go to **Settings**. Paste your token and tap **Test connection**.
+3. Open the app **from the home screen icon** (not from Safari) and connect your private data repo in **Settings**.
 
 > iOS gives the installed home-screen app its own storage, separate from Safari. A token you entered in Safari won't carry over, so enter it again in the installed app.
 
 **Laptop**
-1. Open the same URL in Chrome or Edge.
-2. Go to **Settings** and paste your token.
+1. Open your app's GitHub Pages URL in Chrome or Edge.
+2. Go to **Settings** and connect your private data repo.
 3. Optionally click the install icon in the address bar to open it as its own window.
 
-### 6. First launch
+### First launch
 
-On first run, the app asks for your repo details and token. The defaults are:
+Each browser or installed app needs its own repository details and PAT in **Settings**. Create your own private data repository; do not use someone else's repository.
 
 | Field | Value |
 |---|---|
-| Repo owner | `karsmars` |
-| Repo name | `habit-data` |
+| Repo owner | Your GitHub username |
+| Repo name | The private data repository you created |
 | File path | `data.json` |
 
-If your data file is empty, the app fills it with a few **example** habits and rewards so you can see how it works. Edit or delete them to make it your own.
+New accounts start with **no habits and no rewards**. Add the ones you want from the Today and Shop tabs.
 
 ## Themes
 
@@ -169,7 +166,7 @@ Dates are your local calendar dates, so a day ends at your midnight, not UTC mid
 ## Security
 
 - The token lives only in your browser's local storage on each device. It is never in the code, in the URL, or in logs.
-- The token can only access the `habit-data` repo, and only its contents. If a device is lost, revoke that token in GitHub settings and your data stays safe.
+- The token should be limited to the private data repository you selected and its contents. If a device is lost, revoke that token in GitHub settings and your data stays safe.
 - Anyone with access to your unlocked phone or laptop browser could use the app, so treat each device the way you'd treat a saved password.
 - The app talks only to `api.github.com`. It has no analytics, ads, or third-party scripts.
 - Habit and reward names are always displayed as plain text, never as HTML.
@@ -179,8 +176,8 @@ Dates are your local calendar dates, so a day ends at your midnight, not UTC mid
 | Problem | What to try |
 |---|---|
 | **401 or "bad credentials"** | The token is wrong or expired. Create a new one and paste it in Settings. |
-| **403 or "forbidden"** | The token is missing **Contents: Read and write**, or isn't granted for `habit-data`. Check the token's permissions. It can also mean GitHub's rate limit was hit, so wait a few minutes. |
-| **404 or "not found"** | Check the owner (`karsmars`), repo name (`habit-data`), and file path (`data.json`) in Settings, and make sure the file exists on the `main` branch. |
+| **403 or "forbidden"** | The token is missing **Contents: Read and write**, or isn't granted access to your private data repo. Check the token's permissions. It can also mean GitHub's rate limit was hit, so wait a few minutes. |
+| **404 or "not found"** | Check the owner, repository name, and file path in Settings, and make sure `data.json` exists on the `main` branch. |
 | **App asks for the token again on iPhone** | The home-screen app has separate storage from Safari. Enter the token in the installed app. iOS can also clear storage for sites that go unused for a long time, so keep a copy of the token in your password manager. |
 | **Changes from my other device don't show up** | Switch away and back, or use Refresh. Check the sync indicator for errors. |
 | **Sync says "conflict" repeatedly** | Close the app on the other device, refresh, and try again. Your local changes are kept safe in the meantime. |

@@ -3,7 +3,7 @@ import { balance, dayPoints } from "./points.js";
 import { mergeData } from "./merge.js";
 import { GitHubStorage } from "./storage-github.js";
 import {
-  emptyData, exampleData, loadLocalData, makeId, normalizeData,
+  emptyData, loadLocalData, makeId, normalizeData,
   readConfig, saveConfig, saveLocalData, timestamp
 } from "./state.js";
 import { currentTheme, GOAL_COLORS, setTheme } from "./themes.js";
@@ -232,11 +232,6 @@ async function refreshRemote(showErrors) {
     const remote = await storage.fetchRemote();
     const remoteData = normalizeData(remote.data);
     data = mergeData(data, remoteData);
-    if (remoteData.goals.length === 0 && data.goals.length === 0) {
-      const examples = exampleData();
-      data = { ...data, goals: examples.goals, rewards: data.rewards.length ? data.rewards : examples.rewards };
-      updatePendingCount(Math.max(1, pendingCount));
-    }
     data = normalizeData(data);
     saveLocalData(data);
     const needsUpload = !sameData(data, remoteData) || pendingCount > 0;
