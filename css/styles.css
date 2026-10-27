@@ -266,7 +266,7 @@ dialog::backdrop { background: var(--overlay); }
   .toast { bottom: 24px; }
   .update-banner { bottom: 20px; }
 }
-@media (max-width: 420px) {
+@media (max-width: 560px) {
   .sync-status { max-width: 78px; overflow: hidden; text-overflow: ellipsis; }
   .card { padding: 15px; }
   .goal-row { flex-wrap: wrap; gap: 8px; padding: 10px; }
