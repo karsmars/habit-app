@@ -46,6 +46,8 @@ The hosted app is shared, but each person who wants cross-device sync connects i
 | Auth | A fine-grained personal access token limited to the data repo, stored only in your device's browser storage |
 | Offline | A service worker caches the app, and a local cache holds your data until it can sync |
 
+When changing a file listed in `APP_SHELL` in `sw.js`, or adding or removing an app-shell file, update `CACHE_NAME` in `sw.js` to a new version. This gives devices a fresh cache when the app files change. Documentation, tests, and other files not included in `APP_SHELL` do not require a cache-version bump.
+
 Every save is a commit in the data repo, so you get a full version history and can roll back any mistake.
 
 ## Development and self-hosting
@@ -114,7 +116,7 @@ Choose a theme in **Settings → Theme**. The choice is saved per device, so you
 | Sunset coral | Light, warm, energetic | `#E8590C` | `#7048E8` | `#FFF6F1` |
 | Midnight dark | Dark, cozy | `#8B7CF6` | `#FFC857` | `#14161C` |
 
-Each theme also defines a five-step scale used to color the calendar, from fewest to most points:
+Each theme also defines a five-step scale used to color the calendar, from fewest to most points. Calendar shades are relative to the highest daily point total in the displayed month, so that month's top day uses the strongest shade:
 
 | Theme | Scale |
 |---|---|

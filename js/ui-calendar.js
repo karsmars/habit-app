@@ -32,7 +32,7 @@ export function renderCalendar(container, { data, month, filterId, onMonth, onFi
     makeGrid(firstDay, month, data, filterId, onDay),
     legend()
   ]));
-  container.append(sectionHeading("How it works"), element("p", { className: "muted" }, "Cell shades represent points earned. Select a habit to highlight only its completion days."));
+  container.append(sectionHeading("How it works"), element("p", { className: "muted" }, "Cell shades scale to the highest daily points total in this month. Select a habit to highlight only its completion days."));
 }
 
 function makeGrid(firstDay, month, data, filterId, onDay) {
@@ -41,6 +41,11 @@ function makeGrid(firstDay, month, data, filterId, onDay) {
   const count = daysInMonth(firstDay);
   const today = localDateString();
   const selectedGoal = data.goals.find(({ id }) => id === filterId);
+  const monthlyPoints = Array.from({ length: count }, (_, index) => {
+    const date = addDays(firstDay, index);
+    return filterId ? pointsForGoal(data, filterId, date) : dayPoints(data, date);
+  });
+  const maxPoints = Math.max(0, ...monthlyPoints);
   for (let cell = 0; cell < 42; cell += 1) {
     const dayNumber = cell - offset + 1;
     if (dayNumber < 1 || dayNumber > count) {
@@ -48,10 +53,11 @@ function makeGrid(firstDay, month, data, filterId, onDay) {
       continue;
     }
     const date = addDays(firstDay, dayNumber - 1);
+    const points = monthlyPoints[dayNumber - 1];
     const total = dayPoints(data, date);
-    const filteredPoints = filterId ? pointsForGoal(data, filterId, date) : total;
+    const filteredPoints = filterId ? points : total;
     const isFilteredDay = !filterId || filteredPoints > 0;
-    const level = heatLevel(filterId ? filteredPoints : total);
+    const level = heatLevel(filterId ? filteredPoints : total, maxPoints);
     const completions = activeCompletions(data, date);
     const dayButton = element("button", {
       type: "button",
@@ -73,12 +79,9 @@ function makeGrid(firstDay, month, data, filterId, onDay) {
   return grid;
 }
 
-function heatLevel(points) {
-  if (points <= 0) return 0;
-  if (points <= 5) return 1;
-  if (points <= 15) return 2;
-  if (points <= 30) return 3;
-  return 4;
+export function heatLevel(points, maxPoints) {
+  if (points <= 0 || maxPoints <= 0) return 0;
+  return Math.min(4, Math.max(1, Math.ceil((points / maxPoints) * 4)));
 }
 
 function legend() {
