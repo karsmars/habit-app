@@ -1,0 +1,99 @@
+[data-theme="sage"] {
+  color-scheme: light;
+  --bg: #F6F3EC;
+  --surface: #FFFFFF;
+  --text: #23302A;
+  --text-sub: #6B7A70;
+  --border: #E2DDD0;
+  --primary: #3F7D5C;
+  --on-primary: #FFFFFF;
+  --accent: #E9A23B;
+  --on-accent: #412402;
+  --scale-0: #E3EFE7;
+  --scale-1: #B7D8C4;
+  --scale-2: #7DB894;
+  --scale-3: #3F7D5C;
+  --scale-4: #24533B;
+  --scale-text-0: #23302A;
+  --scale-text-1: #23302A;
+  --scale-text-2: #23302A;
+  --scale-text-3: #FFFFFF;
+  --scale-text-4: #FFFFFF;
+  --overlay: rgb(35 48 42 / 45%);
+  --shadow: rgb(35 48 42 / 18%);
+}
+
+[data-theme="ocean"] {
+  color-scheme: light;
+  --bg: #F3F6FB;
+  --surface: #FFFFFF;
+  --text: #1B2440;
+  --text-sub: #62708F;
+  --border: #DCE3F1;
+  --primary: #3B5BDB;
+  --on-primary: #FFFFFF;
+  --accent: #FFC53D;
+  --on-accent: #412402;
+  --scale-0: #E4EAFB;
+  --scale-1: #B9C8F5;
+  --scale-2: #869EEA;
+  --scale-3: #3B5BDB;
+  --scale-4: #26398F;
+  --scale-text-0: #1B2440;
+  --scale-text-1: #1B2440;
+  --scale-text-2: #1B2440;
+  --scale-text-3: #FFFFFF;
+  --scale-text-4: #FFFFFF;
+  --overlay: rgb(27 36 64 / 45%);
+  --shadow: rgb(27 36 64 / 18%);
+}
+
+[data-theme="sunset"] {
+  color-scheme: light;
+  --bg: #FFF6F1;
+  --surface: #FFFFFF;
+  --text: #3A2018;
+  --text-sub: #8A6254;
+  --border: #F3DDD2;
+  --primary: #E8590C;
+  --on-primary: #FFFFFF;
+  --accent: #7048E8;
+  --on-accent: #FFFFFF;
+  --scale-0: #FDE6D8;
+  --scale-1: #FAC3A5;
+  --scale-2: #F4915F;
+  --scale-3: #E8590C;
+  --scale-4: #A33C06;
+  --scale-text-0: #3A2018;
+  --scale-text-1: #3A2018;
+  --scale-text-2: #3A2018;
+  --scale-text-3: #FFFFFF;
+  --scale-text-4: #FFFFFF;
+  --overlay: rgb(58 32 24 / 45%);
+  --shadow: rgb(58 32 24 / 18%);
+}
+
+[data-theme="midnight"] {
+  color-scheme: dark;
+  --bg: #14161C;
+  --surface: #1F232D;
+  --text: #ECEEF5;
+  --text-sub: #9AA1B5;
+  --border: #2E3342;
+  --primary: #8B7CF6;
+  --on-primary: #14161C;
+  --accent: #FFC857;
+  --on-accent: #2A1D00;
+  --scale-0: #2B2850;
+  --scale-1: #443C8F;
+  --scale-2: #6A5ED0;
+  --scale-3: #8B7CF6;
+  --scale-4: #C3BBFF;
+  --scale-text-0: #ECEEF5;
+  --scale-text-1: #ECEEF5;
+  --scale-text-2: #ECEEF5;
+  --scale-text-3: #14161C;
+  --scale-text-4: #14161C;
+  --overlay: rgb(0 0 0 / 62%);
+  --shadow: rgb(0 0 0 / 35%);
+}
