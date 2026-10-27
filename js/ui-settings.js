@@ -93,7 +93,15 @@ export function renderSettings(container, { config, theme, lastSynced, onTheme, 
   const aboutSection = element("section", { className: "settings-section card" }, [
     sectionHeading("About"),
     element("p", {}, "Habit App is a personal, offline-friendly habit tracker. Without GitHub sync, your data stays in this browser."),
-    element("p", { className: "muted" }, `Last synced: ${lastSynced || "Not connected (local-only use)"}`)
+    element("p", { className: "muted" }, `Last synced: ${lastSynced || "Not connected (local-only use)"}`),
+    element("p", { className: "field-hint" }, [
+      "Habit App is open source. ",
+      element("a", {
+        href: "https://github.com/karsmars/habit-app",
+        target: "_blank",
+        rel: "noopener noreferrer"
+      }, "View the public source code on GitHub.")
+    ])
   ]);
   container.append(themeSection, connectionSection, dataSection, aboutSection);
 }
