@@ -68,10 +68,10 @@ dialog.addEventListener("click", (event) => {
 });
 
 renderAll();
-setStatus(config.token ? "syncing" : "setup");
+setStatus(config.token ? "syncing" : "local");
 installServiceWorker();
 if (config.token) refreshRemote(true);
-else if (pendingCount) setStatus(navigator.onLine ? "setup" : "offline");
+else if (pendingCount) setStatus("local");
 
 function bootData() {
   try {
@@ -153,7 +153,7 @@ function setStatus(state, message = "") {
   else if (state === "synced") syncLabel.textContent = "Synced";
   else if (state === "offline") syncLabel.textContent = `Offline · ${pendingCount} pending`;
   else if (state === "error") syncLabel.textContent = "Sync error";
-  else syncLabel.textContent = storage.configured ? "Not synced" : "Set up sync";
+  else syncLabel.textContent = storage.configured ? "Not synced" : "Local only";
   syncStatus.title = message || syncLabel.textContent;
 }
 
@@ -174,7 +174,7 @@ function commitLocalChange(nextData = data) {
 
 async function pushPending() {
   if (!storage.configured) {
-    setStatus("setup");
+    setStatus("local");
     return;
   }
   if (!navigator.onLine) {
@@ -215,7 +215,7 @@ async function pushPending() {
 
 async function refreshRemote(showErrors) {
   if (!storage.configured) {
-    setStatus(navigator.onLine ? "setup" : "offline");
+    setStatus("local");
     return;
   }
   if (!navigator.onLine) {

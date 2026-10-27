@@ -3,7 +3,7 @@ import { button, clear, element, field, input, pageHeading, sectionHeading } fro
 
 export function renderSettings(container, { config, theme, lastSynced, onTheme, onSave, onTest, onExport, onImport, onClearToken }) {
   clear(container);
-  container.append(pageHeading("settings-heading", "Settings", "Your preferences and private sync connection."));
+  container.append(pageHeading("settings-heading", "Settings", "Your preferences and optional cross-device sync."));
 
   const themeSection = element("section", { className: "settings-section card" }, [
     sectionHeading("Theme"),
@@ -69,10 +69,10 @@ export function renderSettings(container, { config, theme, lastSynced, onTheme, 
   configForm.addEventListener("submit", (event) => event.preventDefault());
   const connectionSection = element("section", { className: "settings-section card" }, [
     sectionHeading("GitHub sync"),
-    element("p", { className: "muted" }, "Create a fine-grained token restricted to your private data repo. The token is stored only in this browser."),
+    element("p", { className: "muted" }, "Optional: the app works without GitHub and saves data in this browser. Connect a private repository here only if you want to sync across devices. A fine-grained token is stored only in this browser."),
     configForm,
     syncError,
-    element("p", { className: "field-hint" }, config.token ? "A token is saved on this device. It is never shown or included in sync errors." : "No token is saved here yet. The app will prompt you to set one up before remote sync.")
+    element("p", { className: "field-hint" }, config.token ? "A token is saved on this device. It is never shown or included in sync errors." : "No token is saved. Local use does not require one.")
   ]);
 
   const fileInput = input("file", "", { accept: "application/json,.json", className: "hidden", "data-import-file": "" });
@@ -92,8 +92,8 @@ export function renderSettings(container, { config, theme, lastSynced, onTheme, 
   ]);
   const aboutSection = element("section", { className: "settings-section card" }, [
     sectionHeading("About"),
-    element("p", {}, "Habit App is a personal, offline-friendly habit tracker. Your data is stored in your private GitHub repository."),
-    element("p", { className: "muted" }, `Last synced: ${lastSynced || "Not synced on this device yet"}`)
+    element("p", {}, "Habit App is a personal, offline-friendly habit tracker. Without GitHub sync, your data stays in this browser."),
+    element("p", { className: "muted" }, `Last synced: ${lastSynced || "Not connected (local-only use)"}`)
   ]);
   container.append(themeSection, connectionSection, dataSection, aboutSection);
 }

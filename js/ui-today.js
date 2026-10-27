@@ -7,9 +7,9 @@ export function renderToday(container, { data, date, configured, onDate, onToggl
   container.append(pageHeading("today-heading", "Today", "Small steps add up."));
   if (!configured) {
     container.append(element("div", { className: "setup-banner" }, [
-      element("strong", {}, "Set up sync to get started"),
-      element("span", {}, "Add your private GitHub data repository and access token in Settings. Your data is also saved on this device."),
-      element("div", { className: "button-row", style: { "margin-top": "10px" } }, button("Open Settings", onSettings, { className: "button primary" }))
+      element("strong", {}, "Using this device only"),
+      element("span", {}, "Your habits and progress are saved in this browser. GitHub setup is optional—connect a private repository in Settings only if you want to sync between devices. Export a backup occasionally to keep a copy of your data."),
+      element("div", { className: "button-row", style: { "margin-top": "10px" } }, button("Set up optional sync", onSettings, { className: "button" }))
     ]));
   }
 

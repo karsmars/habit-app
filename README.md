@@ -5,9 +5,13 @@ A personal habit tracker that turns your daily habits into points you can spend 
 - **Live app:** https://karsmars.github.io/habit-app/
 - **App code (public):** https://github.com/karsmars/habit-app
 
+### Use locally without GitHub
+
+You can use the tracker without a GitHub account, private repository, or access token. Open the app and add habits and rewards; data is saved in that browser on that device. Local-only data does not sync to other devices, so use **Settings → Export JSON** to make backups. Connecting a private GitHub repository is optional and only needed for cross-device sync.
+
 ## Use the app with your own private data
 
-The hosted app is shared, but each person connects it to their **own** private GitHub repository. Your habits, rewards, and access token are not included in the public app repository.
+The hosted app is shared, but each person who wants cross-device sync connects it to their **own** private GitHub repository. This setup is optional: local-only use needs no repository, GitHub account, or token. Your habits, rewards, and access token are not included in the public app repository.
 
 1. **Create a private data repository.** On GitHub, create a repository under your account, set it to **Private**, and initialize it with a README. In that repository, create `data.json` with this empty starting data, then commit it:
 
@@ -17,9 +21,9 @@ The hosted app is shared, but each person connects it to their **own** private G
 
 2. **Create a fine-grained personal access token (PAT).** In GitHub, open **Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token**. Give the token a name, choose an expiration, and under **Repository access** select **Only select repositories** and choose the private data repository you just created. Under **Repository permissions**, grant **Contents: Read and write**. GitHub adds Metadata read-only automatically. Generate the token and save it in your password manager; GitHub only shows it once.
 
-3. **Connect this device.** Open the [hosted app](https://karsmars.github.io/habit-app/), open **Settings**, and enter your GitHub username as **Repository owner**, your private repository name as **Repository name**, and `data.json` as **Data file path**. Paste your PAT, choose **Save settings**, then **Test connection**. Your token is stored only in this browser's local storage; it is not part of the app code or data file.
+3. **Optionally connect this device for sync.** Open the [hosted app](https://karsmars.github.io/habit-app/), open **Settings**, and enter your GitHub username as **Repository owner**, your private repository name as **Repository name**, and `data.json` as **Data file path**. Paste your PAT, choose **Save settings**, then **Test connection**. Your token is stored only in this browser's local storage; it is not part of the app code or data file. If you only want to use this device, skip these steps.
 
-4. **Repeat on each device.** Open the app and enter the same repository details and PAT on your laptop. On iPhone, open the app in Safari, choose **Share → Add to Home Screen**, then open the installed app and configure Settings there. The installed iPhone app has separate storage from Safari, so configure it separately. You can create a separate PAT for each device and revoke them independently.
+4. **For cross-device sync, repeat on each device.** Open the app and enter the same repository details and PAT on your laptop. On iPhone, open the app in Safari, choose **Share → Add to Home Screen**, then open the installed app and configure Settings there. The installed iPhone app has separate storage from Safari, so configure it separately. You can create a separate PAT for each device and revoke them independently.
 
 > **Keep your PAT private.** Never paste it into source code, a public or private issue, or a chat. Use a token limited to just your data repository. If a device is lost, revoke that device's token in GitHub settings.
 
@@ -78,18 +82,18 @@ GitHub Pages on a free account requires the app repository to be public. That is
 **iPhone**
 1. Open your app's GitHub Pages URL in **Safari**.
 2. Tap **Share → Add to Home Screen**.
-3. Open the app **from the home screen icon** (not from Safari) and connect your private data repo in **Settings**.
+3. Open the app **from the home screen icon** (not from Safari). You can use it locally right away; connect your private data repo in **Settings** only if you want sync.
 
 > iOS gives the installed home-screen app its own storage, separate from Safari. A token you entered in Safari won't carry over, so enter it again in the installed app.
 
 **Laptop**
 1. Open your app's GitHub Pages URL in Chrome or Edge.
-2. Go to **Settings** and connect your private data repo.
+2. Use it locally right away, or connect your private data repo in **Settings** if you want sync.
 3. Optionally click the install icon in the address bar to open it as its own window.
 
 ### First launch
 
-Each browser or installed app needs its own repository details and PAT in **Settings**. Create your own private data repository; do not use someone else's repository.
+No setup is needed for local-only use. If you choose to enable cross-device sync, each browser or installed app needs your own private repository details and PAT in **Settings**. Create your own private data repository; do not use someone else's repository.
 
 | Field | Value |
 |---|---|
