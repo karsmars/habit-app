@@ -33,6 +33,8 @@ The hosted app is shared, but each person who wants cross-device sync connects i
 - **Progress:** your balance, lifetime points earned and spent, current and best streaks, a points-per-day chart, and per-habit completion rates.
 - **Calendar:** a month view where each day is color-coded by points earned. Filter by habit to see which days you did it.
 - **Shop:** rewards you can buy with your points, with a progress bar toward the ones you can't afford yet and a purchase history with undo.
+- **Sub-options:** group related activities under one habit (for example Practice → Guitar, Chinese, Game dev). You earn the habit's points once per day however many you do, and each day records which ones you did.
+- **Fitness (optional):** turn on **Settings → Features → Fitness tab** to track workouts: build programs with target sets and reps, log weight × reps for every set, and see personal records, trend charts and history per exercise.
 - **Themes:** four built-in color schemes, selectable in Settings.
 - **Sync:** use it on your phone and laptop with the same data. It works offline and syncs when you're back online.
 - **Backup:** export and import your data as a JSON file.
@@ -136,8 +138,20 @@ Themes live in `css/themes.css` as `[data-theme="name"]` blocks. Copy an existin
 - **Earning points:** each habit has a point value. Completing it adds those points. The value is saved with each completion, so editing a habit later doesn't change your past totals.
 - **Spending points:** buying a reward subtracts its cost. Your balance is always calculated as points earned minus points spent. If you buy something by mistake, use **Undo/Refund** in the purchase history.
 - **Streaks:** a day counts toward your streak if you completed at least one habit.
-- **Calendar filter:** pick a habit chip to highlight only the days you completed it, in that habit's color.
+- **Calendar filter:** pick a habit chip to highlight only the days you completed it, in that habit's color. For habits with sub-options, a second row of chips narrows it to a single sub-option.
+- **Sub-options:** add them in the habit editor. On Today, tap the chips for what you did; ticking any chip completes the habit, and un-ticking the last one un-completes it. Progress has a filter for the points chart and a 30-day breakdown per sub-option.
 - **Archiving vs. deleting:** archiving a habit or reward hides it but keeps your history. Deleting removes it from the lists.
+
+## Fitness tab
+
+The Fitness tab is hidden until you switch it on in **Settings → Features**. The switch is saved per device (like the theme), so turn it on for each phone or laptop where you want it. Turning it off only hides the tab; your fitness data stays saved.
+
+- **Workouts:** build a program such as *Workout 1: Squat 3 × 6–10, Bench 3 × 6–10, …*. Ranges are fine (2–3 sets, 6–10 reps). Exercise types are Weights (weight × reps), Bodyweight (reps, optional added weight), Timed (seconds, e.g. plank) and Cardio (distance and minutes).
+- **Logging:** tap **Start workout**. Each exercise shows its target, what you did last time, and a hint to add weight once you hit the top of the rep range on every set. Your in-progress session is kept if you close the app. You can also log a one-off workout or edit a past session from History.
+- **Progress:** pick an exercise to see personal records (top weight, estimated 1RM, longest hold, best pace, …), a trend chart (3 months, 1 year, or all time) and a table of past sessions. 🏆 marks sessions that set a record, and saving a workout that beats a record shows a message.
+- **Units:** each exercise keeps the unit it was created with (lb/kg, mi/km). Pick the default for new exercises in Settings. Changing an exercise's unit does not convert old entries.
+
+> **Update every device before using Fitness.** The Fitness tab adds new lists to `data.json`. A device still running an older version of the app does not know about them and will drop them the next time it syncs. Close and reopen the app on each device (accept the update banner) before you start logging workouts.
 
 ## Syncing between devices
 
@@ -163,9 +177,14 @@ In **Settings**, use **Export** to download your data as a JSON file, and **Impo
   "goals":       [{ "id": "", "name": "", "emoji": "", "points": 0, "color": "", "archived": false, "deleted": false, "createdAt": "", "updatedAt": "" }],
   "completions": [{ "id": "", "date": "YYYY-MM-DD", "goalId": "", "points": 0, "deleted": false, "updatedAt": "" }],
   "rewards":     [{ "id": "", "name": "", "emoji": "", "cost": 0, "repeatable": true, "archived": false, "deleted": false, "createdAt": "", "updatedAt": "" }],
-  "purchases":   [{ "id": "", "rewardId": "", "rewardName": "", "cost": 0, "date": "", "refunded": false, "updatedAt": "" }]
+  "purchases":   [{ "id": "", "rewardId": "", "rewardName": "", "cost": 0, "date": "", "refunded": false, "updatedAt": "" }],
+  "exercises":   [{ "id": "", "name": "", "kind": "weight|bodyweight|time|cardio", "unit": "lb", "archived": false, "deleted": false, "createdAt": "", "updatedAt": "" }],
+  "workouts":    [{ "id": "", "name": "", "order": 0, "items": [{ "exerciseId": "", "setsMin": 3, "setsMax": 3, "targetMin": 6, "targetMax": 10 }], "archived": false, "deleted": false, "createdAt": "", "updatedAt": "" }],
+  "workoutLogs": [{ "id": "", "date": "YYYY-MM-DD", "workoutId": "", "name": "", "entries": [{ "exerciseId": "", "sets": [{ "weight": 0, "reps": 0, "seconds": 0, "distance": 0, "minutes": 0 }] }], "deleted": false, "updatedAt": "" }]
 }
 ```
+
+A goal can also have `"subgoals": [{ "id": "", "name": "", "archived": false }]`, and a completion can have `"subgoalIds": [""]` listing the sub-options done that day. There is still only one completion per habit per day, so sub-options never add points. The three fitness lists are optional; files without them load as empty lists.
 
 Dates are your local calendar dates, so a day ends at your midnight, not UTC midnight.
 
@@ -199,6 +218,8 @@ Dates are your local calendar dates, so a day ends at your midnight, not UTC mid
 5. Complete different habits on both devices at nearly the same moment. Confirm both appear after syncing.
 6. Switch through all four themes on every tab and in Settings. Confirm nothing is unreadable.
 7. Export your data, then import it and confirm everything matches.
+8. On the phone, tick two sub-options of one habit. On the laptop, refresh and confirm both show and the day still earns the habit's points once.
+9. Turn on the Fitness tab on both devices, log a workout on the phone, and confirm it appears in the laptop's Fitness history after a refresh.
 
 ## Project structure
 
@@ -218,9 +239,12 @@ habit-app/
 │   ├── storage-github.js GitHub API sync
 │   ├── merge.js          conflict merging
 │   ├── points.js         points, balance, and streak logic
+│   ├── subgoals.js       habit sub-option helpers
+│   ├── features.js       per-device feature switches (Fitness tab, units)
+│   ├── fitness.js        workout formatting, records, and progression logic
 │   ├── dates.js
 │   ├── themes.js
-│   └── ui-*.js           the tabs and Settings
+│   └── ui-*.js           the tabs and Settings (ui-fitness*.js is the Fitness tab)
 ├── icons/
 └── tests/
 ```

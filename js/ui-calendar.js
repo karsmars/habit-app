@@ -1,10 +1,11 @@
 import { addDays, addMonths, dayOfWeek, daysInMonth, formatDate, localDateString, monthStart, parseDate } from "./dates.js";
 import { activeCompletions, dayPoints, pointsForGoal } from "./points.js";
+import { filterableSubgoals } from "./subgoals.js";
 import { button, clear, element, pageHeading, sectionHeading } from "./ui.js";
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-export function renderCalendar(container, { data, month, filterId, onMonth, onFilter, onDay }) {
+export function renderCalendar(container, { data, month, filterId, subFilterId = null, onMonth, onFilter, onDay }) {
   clear(container);
   container.append(pageHeading("calendar-heading", "Calendar", "Your habits, one day at a time."));
   const firstDay = monthStart(month);
@@ -16,6 +17,19 @@ export function renderCalendar(container, { data, month, filterId, onMonth, onFi
     button("Today", () => onMonth(monthStart(localDateString())), { className: "button small" }),
     button("›", () => onMonth(addMonths(firstDay, 1)), { className: "icon-button", ariaLabel: "Next month" })
   ]);
+  const chipStyle = (goal) => ({ "--chip-color": goal.color || "#3E63DD", "--chip-text": goal.color === "#E5A100" ? "#2A1D00" : "#FFFFFF" });
+  const filterGoal = data.goals.find((goal) => goal.id === filterId && !goal.deleted);
+  const subs = filterGoal ? filterableSubgoals(data, filterGoal) : [];
+  const subRow = subs.length ? element("div", { className: "filter-chips sub-filter", role: "group", "aria-label": `Filter ${filterGoal.name} by sub-option` }, [
+    element("button", {
+      type: "button", className: "filter-chip", style: chipStyle(filterGoal), "aria-pressed": String(!subFilterId),
+      onClick: () => onFilter(filterGoal.id, null)
+    }, `Any ${filterGoal.name}`),
+    ...subs.map((sub) => element("button", {
+      type: "button", className: "filter-chip", style: chipStyle(filterGoal), "aria-pressed": String(subFilterId === sub.id),
+      onClick: () => onFilter(filterGoal.id, subFilterId === sub.id ? null : sub.id)
+    }, sub.archived ? `${sub.name} (removed)` : sub.name))
+  ]) : null;
   container.append(element("div", { className: "card" }, [
     toolbar,
     element("div", { className: "filter-chips", role: "group", "aria-label": "Filter calendar by habit" }, [
@@ -24,26 +38,28 @@ export function renderCalendar(container, { data, month, filterId, onMonth, onFi
         type: "button",
         className: "filter-chip",
         "aria-pressed": filterId === goal.id,
-        style: { "--chip-color": goal.color || "#3E63DD", "--chip-text": goal.color === "#E5A100" ? "#2A1D00" : "#FFFFFF" },
+        style: chipStyle(goal),
         onClick: () => onFilter(filterId === goal.id ? null : goal.id)
       }, `${goal.emoji || "•"} ${goal.name}`))
     ]),
+    subRow,
     element("div", { className: "weekday-grid", "aria-hidden": "true" }, WEEKDAYS.map((day) => element("span", {}, day))),
-    makeGrid(firstDay, month, data, filterId, onDay),
+    makeGrid(firstDay, month, data, filterId, onDay, subFilterId),
     legend()
   ]));
-  container.append(sectionHeading("How it works"), element("p", { className: "muted" }, "Cell shades scale to the highest daily points total in this month. Select a habit to highlight only its completion days."));
+  container.append(sectionHeading("How it works"), element("p", { className: "muted" }, "Cell shades scale to the highest daily points total in this month. Select a habit to highlight only its completion days. For habits with sub-options, pick one to see just the days you did it."));
 }
 
-function makeGrid(firstDay, month, data, filterId, onDay) {
+function makeGrid(firstDay, month, data, filterId, onDay, subFilterId = null) {
   const grid = element("div", { className: "calendar-grid", role: "grid", "aria-label": "Calendar month" });
   const offset = dayOfWeek(firstDay);
   const count = daysInMonth(firstDay);
   const today = localDateString();
   const selectedGoal = data.goals.find(({ id }) => id === filterId);
+  const selectedSub = (selectedGoal?.subgoals || []).find(({ id }) => id === subFilterId);
   const monthlyPoints = Array.from({ length: count }, (_, index) => {
     const date = addDays(firstDay, index);
-    return filterId ? pointsForGoal(data, filterId, date) : dayPoints(data, date);
+    return filterId ? pointsForGoal(data, filterId, date, subFilterId) : dayPoints(data, date);
   });
   const maxPoints = Math.max(0, ...monthlyPoints);
   for (let cell = 0; cell < 42; cell += 1) {
@@ -63,7 +79,7 @@ function makeGrid(firstDay, month, data, filterId, onDay) {
       type: "button",
       className: `calendar-day${total ? " has-points" : ""}${date === today ? " today" : ""}${filterId && isFilteredDay ? " selected-filter" : ""}${filterId && !isFilteredDay ? " dimmed" : ""}`,
       role: "gridcell",
-      "aria-label": `${formatDate(date, { month: "long", day: "numeric", year: "numeric" })}, ${filterId ? filteredPoints : total} points${selectedGoal ? ` for ${selectedGoal.name}` : ""}`,
+      "aria-label": `${formatDate(date, { month: "long", day: "numeric", year: "numeric" })}, ${filterId ? filteredPoints : total} points${selectedGoal ? ` for ${selectedGoal.name}${selectedSub ? `, ${selectedSub.name}` : ""}` : ""}`,
       style: {
         "background-color": filterId && filteredPoints ? (selectedGoal?.color || "#3E63DD") : total && isFilteredDay ? `var(--scale-${level})` : "transparent",
         color: filterId && filteredPoints ? ((selectedGoal?.color || "#3E63DD") === "#E5A100" ? "#2A1D00" : "#FFFFFF") : total && isFilteredDay ? `var(--scale-text-${level})` : "var(--text)",

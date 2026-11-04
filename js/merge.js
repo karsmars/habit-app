@@ -1,25 +1,35 @@
+import { completionSubIds, sortedUnique } from "./subgoals.js";
+
 export function mergeData(local, remote) {
   if (!local || !remote) throw new TypeError("Both local and remote data are required for merging.");
   const completions = mergeEntities(local.completions, remote.completions, false);
-  const latestCompletionByDateAndGoal = new Map();
+  const groups = new Map();
   for (const item of completions) {
     if (item.deleted) continue;
     const key = `${item.date}\u0000${item.goalId}`;
-    const previous = latestCompletionByDateAndGoal.get(key);
-    if (!previous || timestamp(item) > timestamp(previous)
-      || (timestamp(item) === timestamp(previous) && item.id.localeCompare(previous.id) > 0)) {
-      latestCompletionByDateAndGoal.set(key, item);
-    }
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(item);
   }
-  const activeIds = new Set([...latestCompletionByDateAndGoal.values()].map(({ id }) => id));
+  // Only one completion per goal and day may stay active. The newest wins, but when two devices
+  // created separate completions the sub-options ticked on either device are kept on the winner.
+  const winners = new Map();
+  for (const group of groups.values()) {
+    const winner = group.reduce((best, item) => timestamp(item) > timestamp(best)
+      || (timestamp(item) === timestamp(best) && item.id.localeCompare(best.id) > 0) ? item : best);
+    const subIds = group.length > 1 ? sortedUnique(group.flatMap(completionSubIds)) : null;
+    winners.set(winner.id, subIds && subIds.length ? { ...winner, subgoalIds: subIds } : winner);
+  }
   return {
     version: Math.max(Number(local.version) || 1, Number(remote.version) || 1),
     goals: mergeEntities(local.goals, remote.goals, true).sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id)),
-    completions: completions.map((item) => item.deleted || activeIds.has(item.id)
+    completions: completions.map((item) => item.deleted
       ? item
-      : { ...item, deleted: true }),
+      : winners.get(item.id) || { ...item, deleted: true }),
     rewards: mergeEntities(local.rewards, remote.rewards, true),
-    purchases: mergeEntities(local.purchases, remote.purchases, false)
+    purchases: mergeEntities(local.purchases, remote.purchases, false),
+    exercises: mergeEntities(local.exercises, remote.exercises, true),
+    workouts: mergeEntities(local.workouts, remote.workouts, true),
+    workoutLogs: mergeEntities(local.workoutLogs, remote.workoutLogs, true)
   };
 }
 
@@ -38,9 +48,14 @@ function mergeEntities(localItems = [], remoteItems = [], newestWins = false) {
 function compareRevisions(left, right) {
   const timeDifference = timestamp(left) - timestamp(right);
   if (timeDifference) return timeDifference;
-  const leftValue = JSON.stringify(left, Object.keys(left).sort());
-  const rightValue = JSON.stringify(right, Object.keys(right).sort());
-  return leftValue.localeCompare(rightValue);
+  return canonical(left).localeCompare(canonical(right));
+}
+
+// Key-sorted JSON at every depth, so nested data (sub-options, workout sets) takes part in tie-breaks.
+function canonical(value) {
+  return JSON.stringify(value, (_key, nested) => nested && typeof nested === "object" && !Array.isArray(nested)
+    ? Object.fromEntries(Object.keys(nested).sort().map((name) => [name, nested[name]]))
+    : nested);
 }
 
 function timestamp(item) {

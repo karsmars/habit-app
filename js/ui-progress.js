@@ -1,8 +1,11 @@
 import { addDays, formatDate, localDateString } from "./dates.js";
 import { completionRate, earnedPoints, goalStreak, pointsByDate, spentPoints, streaks } from "./points.js";
+import { daysDone, filterableSubgoals } from "./subgoals.js";
 import { button, clear, element, emptyState, metric, pageHeading, sectionHeading } from "./ui.js";
 
-export function renderProgress(container, { data, range, onRange }) {
+const FILTER_SEPARATOR = "|";
+
+export function renderProgress(container, { data, range, filter = { goalId: null, subId: null }, onRange, onFilter = () => {} }) {
   clear(container);
   container.append(pageHeading("progress-heading", "Progress", "A look at the effort you're putting in."));
   const { current, best } = streaks(data);
@@ -18,15 +21,20 @@ export function renderProgress(container, { data, range, onRange }) {
 
   const chartRange = range === 7 ? 7 : 30;
   const today = localDateString();
-  const chartData = pointsByDate(data, Array.from({ length: chartRange }, (_, index) => addDays(today, index - chartRange + 1)));
+  const activeGoals = data.goals.filter((goal) => !goal.deleted);
+  const filterGoal = activeGoals.find((goal) => goal.id === filter.goalId);
+  const activeFilter = filterGoal ? filter : null;
+  const chartData = pointsByDate(data, Array.from({ length: chartRange }, (_, index) => addDays(today, index - chartRange + 1)), activeFilter);
   const chart = buildChart(chartData, chartRange);
   const toggle = element("div", { className: "button-row" }, [
     button("7 days", () => onRange(7), { className: `button small${chartRange === 7 ? " primary" : ""}`, "aria-pressed": chartRange === 7 }),
     button("30 days", () => onRange(30), { className: `button small${chartRange === 30 ? " primary" : ""}`, "aria-pressed": chartRange === 30 })
   ]);
-  container.append(sectionHeading("Points per day", toggle), element("div", { className: "card chart-card" }, chart));
+  container.append(sectionHeading("Points per day", toggle));
+  if (activeGoals.length) container.append(filterSelect(data, activeGoals, activeFilter, onFilter));
+  container.append(element("div", { className: "card chart-card" }, chart));
 
-  const goals = data.goals.filter((goal) => !goal.deleted);
+  const goals = activeGoals;
   container.append(sectionHeading("Habit consistency"));
   if (!goals.length) {
     container.append(emptyState("No habits yet", "Add habits from the Today tab to start tracking consistency."));
@@ -41,10 +49,47 @@ export function renderProgress(container, { data, range, onRange }) {
         element("span", { className: "muted" }, `${goalStreak(data, goal.id)}-day streak`)
       ]),
       element("div", { className: "field-hint", style: { "margin-top": "5px" } }, `${rate}% completed in the last 30 days`),
-      element("div", { className: "reward-progress", role: "progressbar", "aria-label": `${goal.name} completion rate`, "aria-valuemin": "0", "aria-valuemax": "100", "aria-valuenow": rate }, element("span", { style: { width: `${rate}%` } }))
+      element("div", { className: "reward-progress", role: "progressbar", "aria-label": `${goal.name} completion rate`, "aria-valuemin": "0", "aria-valuemax": "100", "aria-valuenow": rate }, element("span", { style: { width: `${rate}%` } })),
+      subBreakdown(data, goal, today)
     ]));
   });
   container.append(list);
+}
+
+function filterSelect(data, goals, activeFilter, onFilter) {
+  const select = element("select", { id: "progress-filter", className: "progress-filter-select" });
+  select.append(element("option", { value: "" }, "All habits"));
+  for (const goal of goals) {
+    select.append(element("option", { value: goal.id }, `${goal.emoji || "•"} ${goal.name}`));
+    for (const sub of filterableSubgoals(data, goal)) {
+      select.append(element("option", { value: `${goal.id}${FILTER_SEPARATOR}${sub.id}` }, `${goal.name} › ${sub.name}${sub.archived ? " (removed)" : ""}`));
+    }
+  }
+  select.value = activeFilter ? `${activeFilter.goalId}${activeFilter.subId ? `${FILTER_SEPARATOR}${activeFilter.subId}` : ""}` : "";
+  select.addEventListener("change", () => {
+    const [goalId, subId] = select.value.split(FILTER_SEPARATOR);
+    onFilter({ goalId: goalId || null, subId: subId || null });
+  });
+  return element("div", { className: "chart-filter" }, [element("label", { htmlFor: "progress-filter" }, "Show"), select]);
+}
+
+// Days each sub-option was done in the last 30 days (points are still earned once per day per habit).
+function subBreakdown(data, goal, today) {
+  const subs = filterableSubgoals(data, goal);
+  if (!subs.length) return null;
+  const start = addDays(today, -29);
+  return element("div", { className: "sub-breakdown" }, [
+    element("div", { className: "field-hint" }, "By sub-option, last 30 days"),
+    ...subs.map((sub) => {
+      const days = daysDone(data, goal.id, sub.id, start, today);
+      return element("div", { className: "sub-breakdown-row" }, [
+        element("span", { className: "sub-breakdown-name" }, sub.archived ? `${sub.name} (removed)` : sub.name),
+        element("div", { className: "reward-progress", role: "progressbar", "aria-label": `${sub.name} days done`, "aria-valuemin": "0", "aria-valuemax": "30", "aria-valuenow": days },
+          element("span", { style: { width: `${Math.round((days / 30) * 100)}%`, background: goal.color || "var(--primary)" } })),
+        element("span", { className: "muted" }, `${days} ${days === 1 ? "day" : "days"}`)
+      ]);
+    })
+  ]);
 }
 
 function buildChart(values, range) {

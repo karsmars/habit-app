@@ -7,8 +7,11 @@ import {
   readConfig, saveConfig, saveLocalData, timestamp
 } from "./state.js";
 import { currentTheme, GOAL_COLORS, setTheme } from "./themes.js";
+import { FITNESS_KEY, fitnessEnabled, setFitnessEnabled, setUnitSystem, unitSystem, UNITS_KEY } from "./features.js";
+import { renderFitness } from "./ui-fitness.js";
 import { clearSettingsError, displaySettingsError, renderSettings } from "./ui-settings.js";
-import { renderToday } from "./ui-today.js";
+import { completionSubIds, goalSubgoals, MAX_SUBGOALS, toggleSubId, usedSubIds } from "./subgoals.js";
+import { renderToday, subChips } from "./ui-today.js";
 import { renderShop } from "./ui-shop.js";
 import { renderProgress } from "./ui-progress.js";
 import { renderCalendar } from "./ui-calendar.js";
@@ -23,7 +26,7 @@ const dialogActions = document.querySelector("#dialog-actions");
 const toastNode = document.querySelector("#toast");
 const syncStatus = document.querySelector("#sync-status");
 const syncLabel = document.querySelector("#sync-label");
-const views = Object.fromEntries(["today", "progress", "calendar", "shop", "settings"]
+const views = Object.fromEntries(["today", "progress", "calendar", "shop", "fitness", "settings"]
   .map((name) => [name, document.querySelector(`#view-${name}`)]));
 
 let data = bootData();
@@ -33,6 +36,8 @@ let activeTab = "today";
 let selectedDate = localDateString();
 let calendarMonth = monthStart(selectedDate);
 let calendarFilter = null;
+let calendarSubFilter = null;
+let progressFilter = { goalId: null, subId: null };
 let chartRange = 7;
 let lastSynced = localStorage.getItem(LAST_SYNC_KEY) || "";
 let pendingCount = Number(localStorage.getItem(PENDING_KEY)) || 0;
@@ -62,6 +67,7 @@ window.addEventListener("storage", (event) => {
     setTheme(event.newValue || "sage");
     renderAll();
   }
+  if (event.key === FITNESS_KEY || event.key === UNITS_KEY) renderAll();
 });
 dialog.addEventListener("click", (event) => {
   if (event.target === dialog) dialog.close();
@@ -84,6 +90,7 @@ function bootData() {
 
 function showView(name) {
   if (!views[name]) return;
+  if (name === "fitness" && !fitnessEnabled()) name = "today";
   if (name !== "settings") activeTab = name;
   for (const [viewName, view] of Object.entries(views)) {
     const active = name === viewName;
@@ -102,11 +109,39 @@ function showView(name) {
   document.querySelector("#main-content").focus({ preventScroll: true });
 }
 
+function syncFitnessTab() {
+  const enabled = fitnessEnabled();
+  document.querySelector('.tab-button[data-tab="fitness"]').hidden = !enabled;
+  if (!enabled && activeTab === "fitness") {
+    activeTab = "today";
+    if (!views.settings.classList.contains("active")) showView("today");
+  }
+}
+
+function setFitness(enabled) {
+  setFitnessEnabled(enabled);
+  renderAll();
+}
+
+function fitnessContext() {
+  return {
+    getData: () => data,
+    system: unitSystem(),
+    onChange: (next) => commitLocalChange(next),
+    showDialog,
+    closeDialog: () => dialog.close(),
+    confirmDialog,
+    notify
+  };
+}
+
 function renderAll() {
+  syncFitnessTab();
   renderToday(views.today, {
     data, date: selectedDate, configured: storage.configured,
     onDate: (date) => { selectedDate = date; renderAll(); },
     onToggle: toggleCompletion,
+    onToggleSub: toggleSubgoal,
     onAdd: () => editGoal(),
     onEdit: (goal) => editGoal(goal),
     onArchive: archiveGoal,
@@ -123,15 +158,22 @@ function renderAll() {
     onBuy: buyReward,
     onRefund: refundPurchase
   });
-  renderProgress(views.progress, { data, range: chartRange, onRange: (range) => { chartRange = range; renderAll(); } });
+  renderProgress(views.progress, {
+    data, range: chartRange, filter: progressFilter,
+    onRange: (range) => { chartRange = range; renderAll(); },
+    onFilter: (filter) => { progressFilter = filter; renderAll(); }
+  });
   renderCalendar(views.calendar, {
-    data, month: calendarMonth, filterId: calendarFilter,
+    data, month: calendarMonth, filterId: calendarFilter, subFilterId: calendarSubFilter,
     onMonth: (month) => { calendarMonth = month; renderAll(); },
-    onFilter: (id) => { calendarFilter = id; renderAll(); },
+    onFilter: (id, subId = null) => { calendarFilter = id; calendarSubFilter = subId; renderAll(); },
     onDay: (date) => showDayDetails(date)
   });
+  if (fitnessEnabled()) renderFitness(views.fitness, fitnessContext());
+  else views.fitness.replaceChildren();
   renderSettings(views.settings, {
     config, theme: currentTheme(), lastSynced,
+    fitness: { enabled: fitnessEnabled(), system: unitSystem(), onToggle: setFitness, onSystem: (system) => { setUnitSystem(system); renderAll(); } },
     onTheme: (theme) => { setTheme(theme); renderAll(); },
     onSave: saveSettings,
     onTest: testConnection,
@@ -265,7 +307,10 @@ function sameData(left, right) {
     goals: value.goals.slice().sort(byId),
     completions: value.completions.slice().sort(byId),
     rewards: value.rewards.slice().sort(byId),
-    purchases: value.purchases.slice().sort(byId)
+    purchases: value.purchases.slice().sort(byId),
+    exercises: value.exercises.slice().sort(byId),
+    workouts: value.workouts.slice().sort(byId),
+    workoutLogs: value.workoutLogs.slice().sort(byId)
   });
   return canonical(left) === canonical(right);
 }
@@ -280,6 +325,26 @@ function toggleCompletion(goal, date) {
   const completions = existing
     ? data.completions.map((item) => item.id === existing.id ? { ...item, deleted: true, updatedAt: now } : item)
     : [...data.completions, { id: makeId(), date, goalId: goal.id, points: goal.points, deleted: false, updatedAt: now }];
+  commitLocalChange({ ...data, completions });
+}
+
+// Ticking a sub-option edits the day's single completion for the habit (never adds a second one),
+// so the habit's points are earned once per day however many sub-options are done.
+function toggleSubgoal(goal, sub, date) {
+  const existing = data.completions.find((item) => item.goalId === goal.id && item.date === date && !item.deleted);
+  const now = timestamp();
+  let completions;
+  if (!existing) {
+    completions = [...data.completions, { id: makeId(), date, goalId: goal.id, points: goal.points, subgoalIds: [sub.id], deleted: false, updatedAt: now }];
+  } else {
+    const subgoalIds = toggleSubId(completionSubIds(existing), sub.id);
+    completions = data.completions.map((item) => {
+      if (item.id !== existing.id) return item;
+      return subgoalIds.length
+        ? { ...item, subgoalIds, updatedAt: now }
+        : { ...item, subgoalIds: [], deleted: true, updatedAt: now };
+    });
+  }
   commitLocalChange({ ...data, completions });
 }
 
@@ -302,6 +367,12 @@ function showDayDetails(date) {
         }, { className: "button small" })
       ]);
       list.append(row);
+      if (goalSubgoals(goal).length) {
+        list.append(subChips(goal, completion, (parent, sub) => {
+          toggleSubgoal(parent, sub, date);
+          refreshDetails();
+        }));
+      }
     }
     dialogContent.replaceChildren(
       element("p", { className: "muted" }, `${formatDate(date, { weekday: "long", month: "long", day: "numeric", year: "numeric" })} · ${dayPoints(data, date)} points`),
@@ -329,9 +400,37 @@ function editGoal(goal = null) {
     })));
   };
   drawColors();
+
+  // Sub-options: one habit, several activities. Points are still earned once per day.
+  const subDrafts = goalSubgoals(goal).map((sub) => ({ id: sub.id, name: sub.name }));
+  const subList = element("div", { className: "sub-editor-list" });
+  const addSubButton = button("+ Add sub-option", () => {
+    subDrafts.push({ id: null, name: "" });
+    drawSubs();
+    subList.querySelector(".sub-editor-row:last-child input")?.focus();
+  }, { className: "button small" });
+  const drawSubs = () => {
+    subList.replaceChildren(...subDrafts.map((draft, index) => {
+      const nameField = input("text", draft.name, { maxlength: 40, placeholder: "e.g. Guitar", autocomplete: "off", "aria-label": `Sub-option ${index + 1} name` });
+      nameField.addEventListener("input", () => { draft.name = nameField.value; });
+      return element("div", { className: "sub-editor-row" }, [
+        nameField,
+        button("×", () => { subDrafts.splice(index, 1); drawSubs(); }, { className: "icon-button", ariaLabel: `Remove sub-option ${index + 1}`, title: "Remove" })
+      ]);
+    }));
+    addSubButton.disabled = subDrafts.length >= MAX_SUBGOALS;
+  };
+  drawSubs();
+  const subField = element("div", { className: "field full" }, [
+    element("label", {}, "Sub-options (optional)"),
+    element("span", { className: "field-hint" }, "Group related activities under this habit, like Guitar, Chinese or Game dev. You earn the habit's points once per day, no matter how many you do, and each day shows which ones you did."),
+    subList,
+    element("div", { className: "button-row" }, addSubButton)
+  ]);
   showDialog(goal ? "Edit habit" : "Add a habit", element("div", { className: "form-grid" }, [
     field("Name", nameInput), field("Emoji", emojiInput, "Optional"),
-    field("Points", pointsInput), element("div", { className: "field" }, [element("label", {}, "Color"), colors])
+    field("Points", pointsInput, "Earned once per day"), element("div", { className: "field" }, [element("label", {}, "Color"), colors]),
+    subField
   ]), [
     button("Cancel", () => dialog.close(), { className: "button" }),
     button("Save habit", () => {
@@ -342,21 +441,42 @@ function editGoal(goal = null) {
         return;
       }
       const now = timestamp();
+      const subgoals = buildSubgoals(goal, subDrafts);
       const updated = {
         ...(goal || {}),
         id: goal?.id || makeId(),
         name, emoji: emojiInput.value.trim(), points, color: selectedColor,
+        subgoals,
         archived: goal?.archived || false, deleted: false,
         createdAt: goal?.createdAt || now, updatedAt: now,
         order: goal?.order ?? Math.max(-1, ...data.goals
           .filter((item) => !item.deleted && !item.archived)
           .map((item) => item.order)) + 1
       };
+      if (!subgoals.length) delete updated.subgoals;
       const goals = goal ? data.goals.map((item) => item.id === goal.id ? updated : item) : [...data.goals, updated];
       dialog.close();
       commitLocalChange({ ...data, goals });
     }, { className: "button primary" })
   ]);
+}
+
+// Existing sub-options keep their id (so history stays linked). Removed ones with history are archived, not erased.
+function buildSubgoals(goal, drafts) {
+  const kept = [];
+  const keptIds = new Set();
+  for (const draft of drafts) {
+    const name = draft.name.trim();
+    if (!name) continue;
+    const id = draft.id || makeId();
+    keptIds.add(id);
+    kept.push({ ...(goalSubgoals(goal, { includeArchived: true }).find((sub) => sub.id === id) || {}), id, name });
+  }
+  const used = goal ? usedSubIds(data, goal.id) : new Set();
+  const archived = goalSubgoals(goal, { includeArchived: true })
+    .filter((sub) => !keptIds.has(sub.id) && (sub.archived || used.has(sub.id)))
+    .map((sub) => ({ ...sub, archived: true }));
+  return [...kept, ...archived];
 }
 
 function archiveGoal(goal) {
