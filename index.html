@@ -37,6 +37,7 @@
       <section id="view-progress" class="view" aria-labelledby="progress-heading" hidden></section>
       <section id="view-calendar" class="view" aria-labelledby="calendar-heading" hidden></section>
       <section id="view-shop" class="view" aria-labelledby="shop-heading" hidden></section>
+      <section id="view-fitness" class="view" aria-labelledby="fitness-heading" hidden></section>
       <section id="view-settings" class="view settings-view" aria-labelledby="settings-heading" hidden></section>
     </main>
 
@@ -45,12 +46,13 @@
       <button class="tab-button" type="button" data-tab="progress"><span aria-hidden="true">▥</span><span>Progress</span></button>
       <button class="tab-button" type="button" data-tab="calendar"><span aria-hidden="true">▦</span><span>Calendar</span></button>
       <button class="tab-button" type="button" data-tab="shop"><span aria-hidden="true">☆</span><span>Shop</span></button>
+      <button class="tab-button" type="button" data-tab="fitness" hidden><span aria-hidden="true">♥</span><span>Fitness</span></button>
     </nav>
   </div>
 
   <dialog id="app-dialog" aria-labelledby="dialog-title">
     <form method="dialog" class="dialog-card">
-      <button class="dialog-close icon-button" value="cancel" aria-label="Close dialog">×</button>
+      <button class="dialog-close icon-button" value="cancel" formnovalidate aria-label="Close dialog">×</button>
       <h2 id="dialog-title"></h2>
       <div id="dialog-content"></div>
       <div id="dialog-actions" class="dialog-actions"></div>

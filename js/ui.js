@@ -28,6 +28,7 @@ export function button(label, onClick, options = {}) {
     type: "button",
     className: options.className || "button",
     "aria-label": options.ariaLabel,
+    "aria-pressed": options.pressed === undefined ? undefined : String(options.pressed),
     title: options.title,
     disabled: options.disabled,
     onClick

@@ -1,8 +1,25 @@
 import { activeCompletions, balance, dayPoints } from "./points.js";
 import { addDays, formatDate, localDateString } from "./dates.js";
+import { completionSubIds, goalSubgoals } from "./subgoals.js";
 import { button, clear, element, emptyState, metric, pageHeading, sectionHeading } from "./ui.js";
 
-export function renderToday(container, { data, date, configured, onDate, onToggle, onAdd, onEdit, onArchive, onDelete, onMove, onSettings }) {
+// Tap-chips for a habit's sub-options. Ticking any chip completes the habit (points are earned once per day).
+export function subChips(goal, completion, onToggle) {
+  const picked = new Set(completionSubIds(completion));
+  const color = goal.color || "#3E63DD";
+  return element("div", {
+    className: "sub-chips", role: "group", "aria-label": `${goal.name} options`,
+    style: { "--goal-color": color, "--chip-text": color === "#E5A100" ? "#2A1D00" : "#FFFFFF" }
+  },
+    goalSubgoals(goal).map((sub) => element("button", {
+      type: "button",
+      className: "sub-chip",
+      "aria-pressed": String(picked.has(sub.id)),
+      onClick: () => onToggle(goal, sub)
+    }, sub.name)));
+}
+
+export function renderToday(container, { data, date, configured, onDate, onToggle, onToggleSub, onAdd, onEdit, onArchive, onDelete, onMove, onSettings }) {
   clear(container);
   container.append(pageHeading("today-heading", "Today", "Small steps add up."));
   if (!configured) {
@@ -18,6 +35,7 @@ export function renderToday(container, { data, date, configured, onDate, onToggl
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.createdAt.localeCompare(b.createdAt));
   const completions = activeCompletions(data, date);
   const completedIds = new Set(completions.map(({ goalId }) => goalId));
+  const completionByGoal = new Map(completions.map((item) => [item.goalId, item]));
   const doneCount = activeGoals.filter(({ id }) => completedIds.has(id)).length;
   const summary = element("div", { className: "summary-strip" }, [
     element("div", { className: "summary-pill" }, [element("span", {}, "Points today"), element("strong", {}, `${dayPoints(data, date)} pts`)]),
@@ -36,13 +54,16 @@ export function renderToday(container, { data, date, configured, onDate, onToggl
   } else {
     activeGoals.forEach((goal, index) => {
       const completed = completedIds.has(goal.id);
+      const subs = goalSubgoals(goal);
       const toggle = button("", () => onToggle(goal, date), { className: "goal-toggle", ariaLabel: `${completed ? "Mark incomplete" : "Complete"} ${goal.name}` });
       toggle.append(
         element("span", { className: "goal-check", "aria-hidden": "true" }, completed ? "✓" : ""),
         element("span", { className: "goal-emoji", "aria-hidden": "true" }, goal.emoji || "•"),
         element("span", {}, [
           element("span", { className: "goal-name" }, goal.name),
-          element("span", { className: "goal-meta" }, `${goal.points} points`)
+          element("span", { className: "goal-meta" }, subs.length
+            ? `${goal.points} ${goal.points === 1 ? "point" : "points"} per day · tap what you did`
+            : `${goal.points} points`)
         ])
       );
       const edit = button("✎", () => onEdit(goal), { className: "icon-button", ariaLabel: `Edit ${goal.name}` });
@@ -51,12 +72,13 @@ export function renderToday(container, { data, date, configured, onDate, onToggl
       const moveUp = button("↑", () => onMove(goal, -1), { className: "icon-button", ariaLabel: `Move ${goal.name} up`, disabled: index === 0 });
       const moveDown = button("↓", () => onMove(goal, 1), { className: "icon-button", ariaLabel: `Move ${goal.name} down`, disabled: index === activeGoals.length - 1 });
       goalList.append(element("article", {
-        className: `goal-row${completed ? " completed" : ""}`,
+        className: `goal-row${completed ? " completed" : ""}${subs.length ? " has-subs" : ""}`,
         style: { "--goal-color": goal.color || "#3E63DD" }
       }, [
         toggle,
         element("span", { className: "points-badge" }, `+${goal.points}`),
-        element("div", { className: "row-actions" }, [moveUp, moveDown, edit, archive, remove])
+        element("div", { className: "row-actions" }, [moveUp, moveDown, edit, archive, remove]),
+        subs.length ? subChips(goal, completionByGoal.get(goal.id), (parent, sub) => onToggleSub(parent, sub, date)) : null
       ]));
     });
   }

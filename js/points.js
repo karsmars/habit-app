@@ -1,4 +1,5 @@
 import { addDays, localDateString, parseDate } from "./dates.js";
+import { matchesFilter } from "./subgoals.js";
 
 export function activeCompletions(data, date) {
   return data.completions.filter((item) => item.date === date && item.deleted !== true);
@@ -20,9 +21,9 @@ export function balance(data) {
   return earnedPoints(data) - spentPoints(data);
 }
 
-export function pointsForGoal(data, goalId, date) {
+export function pointsForGoal(data, goalId, date, subId = null) {
   return activeCompletions(data, date)
-    .filter((item) => item.goalId === goalId)
+    .filter((item) => matchesFilter(item, goalId, subId))
     .reduce((sum, item) => sum + validPoints(item.points), 0);
 }
 
@@ -51,9 +52,9 @@ export function streaks(data, today = localDateString()) {
   return { current, best };
 }
 
-export function goalStreak(data, goalId, today = localDateString()) {
+export function goalStreak(data, goalId, today = localDateString(), subId = null) {
   const dates = new Set(data.completions
-    .filter((item) => item.goalId === goalId && !item.deleted)
+    .filter((item) => matchesFilter(item, goalId, subId) && !item.deleted)
     .map((item) => item.date));
   let cursor = dates.has(today) ? today : addDays(today, -1);
   let count = 0;
@@ -64,14 +65,18 @@ export function goalStreak(data, goalId, today = localDateString()) {
   return count;
 }
 
-export function pointsByDate(data, dates) {
-  return dates.map((date) => ({ date, points: dayPoints(data, date) }));
+// With a filter ({ goalId, subId }) only that habit (or that sub-option) is counted.
+export function pointsByDate(data, dates, filter = null) {
+  return dates.map((date) => ({
+    date,
+    points: filter?.goalId ? pointsForGoal(data, filter.goalId, date, filter.subId || null) : dayPoints(data, date)
+  }));
 }
 
-export function completionRate(data, goalId, today = localDateString(), days = 30) {
+export function completionRate(data, goalId, today = localDateString(), days = 30, subId = null) {
   const start = addDays(today, -(days - 1));
   const completed = new Set(data.completions
-    .filter((item) => item.goalId === goalId && !item.deleted && item.date >= start && item.date <= today)
+    .filter((item) => matchesFilter(item, goalId, subId) && !item.deleted && item.date >= start && item.date <= today)
     .map((item) => item.date)).size;
   return Math.round((completed / days) * 100);
 }

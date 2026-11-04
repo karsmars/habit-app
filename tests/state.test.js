@@ -8,8 +8,16 @@ test("a new account starts with empty habit and reward lists", () => {
     goals: [],
     completions: [],
     rewards: [],
-    purchases: []
+    purchases: [],
+    exercises: [],
+    workouts: [],
+    workoutLogs: []
   });
+});
+
+test("data files saved before the Fitness tab still load with empty fitness lists", () => {
+  const data = normalizeData({ version: 1, goals: [], completions: [], rewards: [], purchases: [] });
+  assert.deepEqual([data.exercises, data.workouts, data.workoutLogs], [[], [], []]);
 });
 
 test("legacy goal arrays receive order from their stored position", () => {

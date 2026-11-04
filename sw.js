@@ -1,4 +1,4 @@
-const CACHE_NAME = "habit-app-shell-v10";
+const CACHE_NAME = "habit-app-shell-v11";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -19,6 +19,12 @@ const APP_SHELL = [
   "./js/ui-shop.js",
   "./js/ui-progress.js",
   "./js/ui-calendar.js",
+  "./js/subgoals.js",
+  "./js/features.js",
+  "./js/fitness.js",
+  "./js/ui-fitness.js",
+  "./js/ui-fitness-session.js",
+  "./js/ui-fitness-progress.js",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
   "./icons/icon-maskable-512.png",

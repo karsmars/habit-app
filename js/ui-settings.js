@@ -1,7 +1,8 @@
+import { UNIT_SYSTEMS } from "./fitness.js";
 import { THEMES, GOAL_COLORS } from "./themes.js";
 import { button, clear, element, field, input, pageHeading, sectionHeading } from "./ui.js";
 
-export function renderSettings(container, { config, theme, lastSynced, onTheme, onSave, onTest, onExport, onImport, onClearToken }) {
+export function renderSettings(container, { config, theme, lastSynced, fitness, onTheme, onSave, onTest, onExport, onImport, onClearToken }) {
   clear(container);
   container.append(pageHeading("settings-heading", "Settings", "Your preferences and optional cross-device sync."));
 
@@ -27,6 +28,23 @@ export function renderSettings(container, { config, theme, lastSynced, onTheme, 
       ]);
     }))
   ]);
+
+  const fitnessToggle = element("input", { type: "checkbox", id: "fitness-toggle", checked: Boolean(fitness?.enabled), role: "switch" });
+  fitnessToggle.addEventListener("change", () => fitness.onToggle(fitnessToggle.checked));
+  const unitSelect = element("select", { id: "unit-system", "aria-label": "Units for new exercises" },
+    UNIT_SYSTEMS.map((item) => element("option", { value: item.id, selected: item.id === fitness?.system }, item.label)));
+  unitSelect.addEventListener("change", () => fitness.onSystem(unitSelect.value));
+  const featuresSection = fitness ? element("section", { className: "settings-section card" }, [
+    sectionHeading("Features"),
+    element("label", { className: "toggle-row", htmlFor: "fitness-toggle" }, [
+      fitnessToggle,
+      element("span", {}, [
+        element("strong", {}, "Fitness tab"),
+        element("span", { className: "field-hint" }, "Track workouts, sets, weights and personal records. This choice is saved on this device. Turning it off only hides the tab; your fitness data stays saved.")
+      ])
+    ]),
+    fitness.enabled ? field("Units for new exercises", unitSelect, "Each exercise keeps the unit it was created with.") : null
+  ]) : null;
 
   const ownerInput = input("text", config.owner, { autocomplete: "off", required: true });
   const repoInput = input("text", config.repo, { autocomplete: "off", required: true });
@@ -103,7 +121,7 @@ export function renderSettings(container, { config, theme, lastSynced, onTheme, 
       }, "View the public source code on GitHub.")
     ])
   ]);
-  container.append(themeSection, connectionSection, dataSection, aboutSection);
+  container.append(featuresSection, themeSection, connectionSection, dataSection, aboutSection);
 }
 
 export function displaySettingsError(target, message) {
